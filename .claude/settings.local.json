@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find:*)",
+      "Bash(xcode-select:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(npm install:*)",
+      "Bash(npx cap init:*)",
+      "Bash(gem install:*)",
+      "Bash(brew install:*)",
+      "Bash(ls:*)",
+      "Bash(npx cap sync ios)",
+      "Bash(xcrun simctl:*)",
+      "Bash(npx serve:*)",
+      "Bash(curl:*)",
+      "Bash(echo:*)",
+      "Bash(npx cap:*)",
+      "Bash(grep:*)",
+      "Bash(open:*)",
+      "Bash(claude mcp:*)",
+      "Bash(vercel whoami:*)",
+      "Bash(vercel login:*)",
+      "Bash(gh auth status:*)",
+      "Bash(sudo chown:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
