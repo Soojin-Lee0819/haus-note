@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { projectService } from '../services/projectService'
@@ -8,13 +8,8 @@ export function InvitePage() {
   const navigate = useNavigate()
   const [status, setStatus] = useState<'loading' | 'needs-auth' | 'success' | 'error'>('loading')
   const [error, setError] = useState('')
-  const [projectId, setProjectId] = useState('')
 
-  useEffect(() => {
-    handleInvite()
-  }, [token])
-
-  const handleInvite = async () => {
+  const handleInvite = useCallback(async () => {
     if (!token) {
       setStatus('error')
       setError('Invalid invite link')
@@ -33,7 +28,6 @@ export function InvitePage() {
     // User is authenticated — accept the invite
     try {
       const result = await projectService.acceptInvite(token)
-      setProjectId(result.project_id)
       setStatus('success')
       // Auto-redirect after a brief moment
       setTimeout(() => {
@@ -43,7 +37,11 @@ export function InvitePage() {
       setStatus('error')
       setError(err.message || 'Failed to accept invitation')
     }
-  }
+  }, [token, navigate])
+
+  useEffect(() => {
+    handleInvite()
+  }, [handleInvite])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">

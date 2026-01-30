@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { X, Copy, Check, Trash2 } from 'lucide-react'
 import { projectService } from '../services/projectService'
 import { ProjectMember, ProjectInvitation } from '../types/database'
@@ -24,11 +24,7 @@ export function ShareProjectModal({ projectId, currentUserId, userRole, onClose 
 
   const isOwner = userRole === 'owner'
 
-  useEffect(() => {
-    loadData()
-  }, [projectId])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoadingMembers(true)
     try {
       const [membersData, invitationsData] = await Promise.all([
@@ -42,7 +38,11 @@ export function ShareProjectModal({ projectId, currentUserId, userRole, onClose 
     } finally {
       setLoadingMembers(false)
     }
-  }
+  }, [projectId])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()

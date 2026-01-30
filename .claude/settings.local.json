@@ -24,7 +24,13 @@
       "Bash(vercel login:*)",
       "Bash(gh auth status:*)",
       "Bash(sudo chown:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: Haus Note apartment hunting app\n\n- React + TypeScript + Tailwind CSS\n- Supabase backend \\(auth, database, storage\\)\n- Google Maps integration for apartment locations\n- Capacitor for iOS native app\n- Waitlist page for marketing\n- Full apartment tracking with photos, comments, amenities\n- Commute time calculations\n- Project collaboration features\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(vercel:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix ESLint warnings for Vercel CI build\n\n- Add useCallback to ShareProjectModal loadData\n- Add useCallback to InvitePage handleInvite\n- Remove unused projectId state variable\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
