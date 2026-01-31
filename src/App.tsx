@@ -9,7 +9,8 @@ import { ProjectPage } from './pages/ProjectPage'
 import { InvitePage } from './pages/InvitePage'
 
 // Set to true to show waitlist page instead of login
-const WAITLIST_MODE = true
+// In production, set REACT_APP_WAITLIST_MODE=true in Vercel env vars
+const WAITLIST_MODE = process.env.REACT_APP_WAITLIST_MODE === 'true'
 
 function PostAuthRedirect() {
   const navigate = useNavigate()
