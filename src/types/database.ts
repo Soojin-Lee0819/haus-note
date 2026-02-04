@@ -179,6 +179,37 @@ export interface ApartmentCommute {
   location?: CommuteLocation
 }
 
+export interface Feedback {
+  id: string
+  user_id?: string
+  display_name?: string
+  title: string
+  description?: string
+  category: 'bug' | 'feature' | 'general'
+  status: 'open' | 'in_progress' | 'done'
+  vote_count: number
+  image_path?: string
+  image_url?: string
+  created_at?: string
+  comment_count?: number
+}
+
+export interface FeedbackComment {
+  id: string
+  feedback_id: string
+  user_id?: string
+  comment: string
+  created_at?: string
+  updated_at?: string
+  user_profile?: UserProfile
+}
+
+export interface FeedbackVote {
+  feedback_id: string
+  user_id: string
+  created_at?: string
+}
+
 // Type aliases for backwards compatibility
 export type Media = ApartmentMedia
 export type Comment = ApartmentComment

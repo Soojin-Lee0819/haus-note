@@ -84,5 +84,21 @@ export const authService = {
 
     if (error) throw error
     return data
+  },
+
+  // Update email (sends confirmation to new address)
+  async updateEmail(newEmail: string) {
+    const { data, error } = await supabase.auth.updateUser(
+      { email: newEmail },
+      { emailRedirectTo: `${window.location.origin}/dashboard` }
+    )
+    if (error) throw error
+    return data
+  },
+
+  // Delete current user's account via server-side RPC
+  async deleteAccount() {
+    const { error } = await supabase.rpc('delete_user')
+    if (error) throw error
   }
 }

@@ -29,22 +29,6 @@ const travelIcons = {
 
 type TravelMode = 'driving' | 'transit' | 'walking' | 'bicycling'
 
-function getBestMode(commute: ApartmentCommute): TravelMode | null {
-  const modes: { key: TravelMode; value: number | undefined }[] = [
-    { key: 'driving', value: commute.duration_driving },
-    { key: 'transit', value: commute.duration_transit },
-    { key: 'walking', value: commute.duration_walking },
-    { key: 'bicycling', value: commute.duration_bicycling },
-  ]
-  let best: { key: TravelMode; value: number } | null = null
-  for (const m of modes) {
-    if (m.value != null && (best === null || m.value < best.value)) {
-      best = { key: m.key, value: m.value }
-    }
-  }
-  return best?.key ?? null
-}
-
 export function CommuteTimes({ commutes, mode = 'compact', defaultTravelMode = 'transit', apartmentLat, apartmentLng }: CommuteTimesProps) {
   if (!commutes || commutes.length === 0) return null
 
@@ -106,8 +90,6 @@ export function CommuteTimes({ commutes, mode = 'compact', defaultTravelMode = '
     <div className="space-y-3">
       {commutes.map(commute => {
         const Icon = iconMap[commute.location?.icon || 'other'] || MapPin
-        const bestMode = getBestMode(commute)
-
         return (
           <div key={commute.id} className="bg-gray-50 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-2">
@@ -123,28 +105,25 @@ export function CommuteTimes({ commutes, mode = 'compact', defaultTravelMode = '
                 icon={Car}
                 label="Drive"
                 duration={commute.duration_driving}
-                isBest={bestMode === 'driving'}
                 onClick={() => openDirections(commute, 'driving')}
               />
               <CommuteTimeItem
                 icon={Train}
                 label="Transit"
                 duration={commute.duration_transit}
-                isBest={bestMode === 'transit'}
+                isBest={true}
                 onClick={() => openDirections(commute, 'transit')}
               />
               <CommuteTimeItem
                 icon={Bike}
                 label="Bike"
                 duration={commute.duration_bicycling}
-                isBest={bestMode === 'bicycling'}
                 onClick={() => openDirections(commute, 'bicycling')}
               />
               <CommuteTimeItem
                 icon={Footprints}
                 label="Walk"
                 duration={commute.duration_walking}
-                isBest={bestMode === 'walking'}
                 onClick={() => openDirections(commute, 'walking')}
               />
             </div>

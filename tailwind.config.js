@@ -11,7 +11,7 @@ module.exports = {
         serif: ['"Crimson Pro"', 'ui-serif', 'Georgia', 'serif'],
       },
       colors: {
-        accent: { DEFAULT: '#FF6B6B', dark: '#E85555' },
+        accent: { DEFAULT: '#E8553A', dark: '#D4432A' },
       },
     },
   },

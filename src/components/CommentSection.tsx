@@ -75,14 +75,14 @@ export function CommentSection({
   return (
     <div className="space-y-4">
       <h3 className="font-semibold text-gray-900">
-        Comments ({comments.length})
+        Notes ({comments.length})
       </h3>
 
-      {/* Comment List */}
+      {/* Notes List */}
       <div className="space-y-3 max-h-96 overflow-y-auto">
         {comments.length === 0 ? (
           <p className="text-gray-500 text-sm text-center py-4">
-            No comments yet. Be the first to comment!
+            No notes yet. Add details like lease terms, move-in specials, or anything worth remembering.
           </p>
         ) : (
           comments.map((comment) => (
@@ -162,7 +162,7 @@ export function CommentSection({
           type="text"
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment..."
+          placeholder="Add a note"
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <button

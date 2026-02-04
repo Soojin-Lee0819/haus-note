@@ -7,6 +7,8 @@ import { WaitlistPage } from './pages/WaitlistPage'
 import { ProjectDashboard } from './pages/ProjectDashboard'
 import { ProjectPage } from './pages/ProjectPage'
 import { InvitePage } from './pages/InvitePage'
+import { FeedbackPage } from './pages/FeedbackPage'
+import { FeedbackWidget } from './components/FeedbackWidget'
 
 // Set to true to show waitlist page instead of login
 // In production, set REACT_APP_WAITLIST_MODE=true in Vercel env vars
@@ -55,6 +57,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <FeedbackWidget />
       <Routes>
         <Route
           path="/"
@@ -75,6 +78,10 @@ function App() {
         <Route
           path="/projects/:projectId"
           element={session ? <ProjectPage /> : <Navigate to="/" />}
+        />
+        <Route
+          path="/feedback"
+          element={<FeedbackPage />}
         />
         <Route
           path="/invite/:token"
