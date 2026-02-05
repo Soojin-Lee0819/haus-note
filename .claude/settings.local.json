@@ -30,7 +30,30 @@
       "Bash(git branch:*)",
       "Bash(git push:*)",
       "Bash(vercel:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix ESLint warnings for Vercel CI build\n\n- Add useCallback to ShareProjectModal loadData\n- Add useCallback to InvitePage handleInvite\n- Remove unused projectId state variable\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix ESLint warnings for Vercel CI build\n\n- Add useCallback to ShareProjectModal loadData\n- Add useCallback to InvitePage handleInvite\n- Remove unused projectId state variable\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(dig:*)",
+      "Bash(printf:*)",
+      "Bash(git commit:*)",
+      "Bash(npm start)",
+      "Bash(claude config:*)",
+      "Bash(npx eslint:*)",
+      "Bash(python3:*)",
+      "Bash(qlmanage:*)",
+      "Bash(ffprobe:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(supabase --version:*)",
+      "Bash(brew fetch:*)",
+      "Bash(npx supabase:*)",
+      "Skill(keybindings-help)",
+      "Bash(wc:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(npx react-scripts build:*)",
+      "Bash(git checkout:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "figma"
+  ]
 }

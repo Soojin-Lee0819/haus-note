@@ -23,9 +23,11 @@ interface AmenityPickerProps {
   canEdit: boolean
   onAdd: (name: string) => void
   onRemove: (amenityId: string) => void
+  onAddMany?: (names: string[]) => void
+  onRemoveMany?: (amenityIds: string[]) => void
 }
 
-export function AmenityPicker({ amenities, canEdit, onAdd, onRemove }: AmenityPickerProps) {
+export function AmenityPicker({ amenities, canEdit, onAdd, onRemove, onAddMany, onRemoveMany }: AmenityPickerProps) {
   const [customInput, setCustomInput] = useState('')
 
   const activeNames = new Set(amenities.map(a => a.name))
@@ -75,7 +77,39 @@ export function AmenityPicker({ amenities, canEdit, onAdd, onRemove }: AmenityPi
 
   return (
     <div>
-      <h4 className="text-sm font-medium text-gray-700 mb-2">Amenities</h4>
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-sm font-medium text-gray-700">Amenities</h4>
+        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={PRESET_AMENITIES.every(p => activeNames.has(p.name))}
+            onChange={() => {
+              const allSelected = PRESET_AMENITIES.every(p => activeNames.has(p.name))
+              if (allSelected) {
+                const idsToRemove = amenities
+                  .filter(a => PRESET_AMENITIES.some(p => p.name === a.name))
+                  .map(a => a.id)
+                if (onRemoveMany) {
+                  onRemoveMany(idsToRemove)
+                } else {
+                  idsToRemove.forEach(id => onRemove(id))
+                }
+              } else {
+                const namesToAdd = PRESET_AMENITIES
+                  .filter(p => !activeNames.has(p.name))
+                  .map(p => p.name)
+                if (onAddMany) {
+                  onAddMany(namesToAdd)
+                } else {
+                  namesToAdd.forEach(n => onAdd(n))
+                }
+              }
+            }}
+            className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          />
+          <span className="text-xs text-gray-500">Select all</span>
+        </label>
+      </div>
 
       {/* Preset amenity pills */}
       <div className="flex flex-wrap gap-2 mb-3">

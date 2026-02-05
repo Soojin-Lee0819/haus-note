@@ -1,8 +1,8 @@
 // src/components/ApartmentDetail.tsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   X, MapPin, DollarSign, Bed, Bath, Square, Calendar, ExternalLink,
-  ChevronLeft, ChevronRight, Trash2, Play, Edit2
+  ChevronLeft, ChevronRight, Trash2, Play, Edit2, Loader2, Check
 } from 'lucide-react'
 import { Apartment, ApartmentMedia, ApartmentComment, ApartmentCommute, Amenity } from '../types/database'
 import { apartmentService, mediaService } from '../services'
@@ -11,6 +11,7 @@ import { CommentSection } from './CommentSection'
 import { CommuteTimes } from './CommuteTimes'
 import { AmenityPicker } from './AmenityPicker'
 import { format } from 'date-fns'
+import { loadGoogleMaps } from '../lib/googleMaps'
 
 interface ApartmentDetailProps {
   apartment: Apartment
@@ -59,7 +60,19 @@ export function ApartmentDetail({
     move_in_date: initialApartment.move_in_date || '',
     listing_url: initialApartment.listing_url || '',
     notes: initialApartment.notes || '',
+    latitude: initialApartment.latitude?.toString() || '',
+    longitude: initialApartment.longitude?.toString() || '',
   })
+
+  // Address autocomplete state
+  const [addressSuggestions, setAddressSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
+  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false)
+  const [addressSelected, setAddressSelected] = useState(true) // Initially true since we have existing address
+  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
+  const addressInputRef = useRef<HTMLInputElement>(null)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
 
   // Refresh data
   useEffect(() => {
@@ -80,6 +93,137 @@ export function ApartmentDetail({
     loadData()
   }, [apartment.id])
 
+  // Load Google Places API when editing
+  useEffect(() => {
+    if (!isEditing) return
+    loadGoogleMaps().then(() => setIsGoogleLoaded(true)).catch(console.error)
+  }, [isEditing])
+
+  // Initialize Google services
+  useEffect(() => {
+    try {
+      if (isGoogleLoaded && window.google?.maps?.places) {
+        autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService()
+        const dummyDiv = document.createElement('div')
+        placesServiceRef.current = new window.google.maps.places.PlacesService(dummyDiv)
+      }
+    } catch (err) {
+      console.error('Error initializing Google services:', err)
+    }
+  }, [isGoogleLoaded])
+
+  // Fetch address suggestions
+  const fetchAddressSuggestions = useCallback((input: string) => {
+    if (!autocompleteServiceRef.current || !input.trim() || input.length < 3) {
+      setAddressSuggestions([])
+      return
+    }
+
+    try {
+      autocompleteServiceRef.current.getPlacePredictions(
+        { input },
+        (predictions, status) => {
+          if (window.google?.maps?.places?.PlacesServiceStatus?.OK && status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+            setAddressSuggestions(predictions)
+          } else {
+            setAddressSuggestions([])
+          }
+        }
+      )
+    } catch (err) {
+      console.error('Error fetching address suggestions:', err)
+      setAddressSuggestions([])
+    }
+  }, [])
+
+  // Debounced address input
+  useEffect(() => {
+    if (!isEditing || addressSelected) return
+
+    const timer = setTimeout(() => {
+      try {
+        if (editForm.address) {
+          fetchAddressSuggestions(editForm.address)
+        }
+      } catch (err) {
+        console.error('Error in address suggestion effect:', err)
+      }
+    }, 200)
+
+    return () => clearTimeout(timer)
+  }, [editForm.address, fetchAddressSuggestions, isEditing, addressSelected])
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      try {
+        if (
+          suggestionsRef.current &&
+          !suggestionsRef.current.contains(e.target as Node) &&
+          addressInputRef.current &&
+          !addressInputRef.current.contains(e.target as Node)
+        ) {
+          setShowAddressSuggestions(false)
+        }
+      } catch (err) {
+        console.error('Error in click outside handler:', err)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Handle selecting an address suggestion
+  const handleSelectAddress = (prediction: google.maps.places.AutocompletePrediction) => {
+    if (!placesServiceRef.current) return
+
+    try {
+      placesServiceRef.current.getDetails(
+        {
+          placeId: prediction.place_id,
+          fields: ['formatted_address', 'geometry', 'address_components'],
+        },
+        (place, status) => {
+          if (window.google?.maps?.places?.PlacesServiceStatus?.OK && status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+            const address = place.formatted_address || prediction.description
+            let neighborhood = ''
+
+            place.address_components?.forEach((component) => {
+              if (component.types.includes('neighborhood') || component.types.includes('sublocality_level_1')) {
+                neighborhood = component.long_name
+              }
+            })
+
+            setEditForm(prev => ({
+              ...prev,
+              address,
+              neighborhood: neighborhood || prev.neighborhood,
+              latitude: place.geometry?.location?.lat().toString() || '',
+              longitude: place.geometry?.location?.lng().toString() || '',
+            }))
+            setAddressSelected(true)
+            setAddressSuggestions([])
+            setShowAddressSuggestions(false)
+          }
+        }
+      )
+    } catch (err) {
+      console.error('Error getting place details:', err)
+    }
+  }
+
+  const handleAddressChange = (value: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      address: value,
+      latitude: '',
+      longitude: '',
+    }))
+    setAddressSelected(false)
+    setShowAddressSuggestions(true)
+  }
+
   const handleStatusChange = async (newStatus: string) => {
     try {
       const updated = await apartmentService.updateStatus(
@@ -96,24 +240,42 @@ export function ApartmentDetail({
   const handleSaveEdit = async () => {
     setSaving(true)
     try {
-      const updated = await apartmentService.update(apartment.id, {
+      const updateData: Partial<Apartment> = {
         title: editForm.title,
         address: editForm.address,
         price: parseFloat(editForm.price),
-        bedrooms: editForm.bedrooms ? parseFloat(editForm.bedrooms) : undefined,
-        bathrooms: editForm.bathrooms ? parseFloat(editForm.bathrooms) : undefined,
-        square_feet: editForm.square_feet ? parseInt(editForm.square_feet) : undefined,
-        neighborhood: editForm.neighborhood || undefined,
-        move_in_date: editForm.move_in_date || undefined,
-        listing_url: editForm.listing_url || undefined,
-        notes: editForm.notes || undefined,
-      })
-      const merged = { ...apartment, ...updated }
-      setApartment(merged)
-      onUpdate(merged)
-      setIsEditing(false)
-    } catch (err) {
+      }
+
+      // Only include optional fields if they have values
+      if (editForm.bedrooms) updateData.bedrooms = parseFloat(editForm.bedrooms)
+      if (editForm.bathrooms) updateData.bathrooms = parseFloat(editForm.bathrooms)
+      if (editForm.square_feet) updateData.square_feet = parseInt(editForm.square_feet)
+      if (editForm.neighborhood) updateData.neighborhood = editForm.neighborhood
+      if (editForm.move_in_date) updateData.move_in_date = editForm.move_in_date
+      if (editForm.listing_url) updateData.listing_url = editForm.listing_url
+      if (editForm.notes) updateData.notes = editForm.notes
+
+      // Include coordinates if we have them
+      if (editForm.latitude && editForm.longitude) {
+        updateData.latitude = parseFloat(editForm.latitude)
+        updateData.longitude = parseFloat(editForm.longitude)
+      }
+
+      console.log('Updating apartment with:', updateData)
+      const updated = await apartmentService.update(apartment.id, updateData)
+      console.log('Update response:', updated)
+
+      if (updated) {
+        const merged = { ...apartment, ...updated }
+        setApartment(merged)
+        onUpdate(merged)
+        setIsEditing(false)
+        setAddressSelected(true)
+      }
+    } catch (err: any) {
       console.error('Failed to update apartment:', err)
+      console.error('Error details:', err?.message, err?.stack)
+      alert('Failed to save changes: ' + (err?.message || 'Unknown error'))
     } finally {
       setSaving(false)
     }
@@ -162,6 +324,26 @@ export function ApartmentDetail({
       setAmenities(amenities.filter(a => a.id !== amenityId))
     } catch (err) {
       console.error('Failed to remove amenity:', err)
+    }
+  }
+
+  const handleAddManyAmenities = async (names: string[]) => {
+    try {
+      const results = await Promise.all(
+        names.map(name => apartmentService.addAmenity(apartment.id, name))
+      )
+      setAmenities(prev => [...prev, ...results])
+    } catch (err) {
+      console.error('Failed to add amenities:', err)
+    }
+  }
+
+  const handleRemoveManyAmenities = async (ids: string[]) => {
+    try {
+      await Promise.all(ids.map(id => apartmentService.deleteAmenity(id)))
+      setAmenities(prev => prev.filter(a => !ids.includes(a.id)))
+    } catch (err) {
+      console.error('Failed to remove amenities:', err)
     }
   }
 
@@ -294,6 +476,8 @@ export function ApartmentDetail({
                 canEdit={canEdit}
                 onAdd={handleAddAmenity}
                 onRemove={handleRemoveAmenity}
+                onAddMany={handleAddManyAmenities}
+                onRemoveMany={handleRemoveManyAmenities}
               />
             </div>
 
@@ -313,15 +497,63 @@ export function ApartmentDetail({
                     />
                   </div>
 
-                  <div>
+                  <div className="relative">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-                    <input
-                      type="text"
-                      required
-                      value={editForm.address}
-                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                    <div className="relative">
+                      <input
+                        ref={addressInputRef}
+                        type="text"
+                        required
+                        value={editForm.address}
+                        onChange={(e) => handleAddressChange(e.target.value)}
+                        onFocus={() => setShowAddressSuggestions(true)}
+                        placeholder="Search for an address..."
+                        autoComplete="off"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {editForm.address && !addressSelected && (
+                          <Loader2 className="w-4 h-4 text-gray-300 animate-spin" />
+                        )}
+                        {addressSelected && editForm.address && (
+                          <Check className="w-4 h-4 text-green-500" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Address Suggestions Dropdown */}
+                    {showAddressSuggestions && addressSuggestions.length > 0 && (
+                      <div
+                        ref={suggestionsRef}
+                        className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto"
+                      >
+                        {addressSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion.place_id}
+                            type="button"
+                            onClick={() => handleSelectAddress(suggestion)}
+                            className="w-full text-left px-3 py-2.5 hover:bg-gray-50 active:bg-gray-100 border-b border-gray-100 last:border-b-0 flex items-start gap-2"
+                          >
+                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <p className="text-sm text-gray-900 truncate">
+                                {suggestion.structured_formatting.main_text}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {suggestion.structured_formatting.secondary_text}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {addressSelected && editForm.latitude && editForm.longitude && (
+                      <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Location updated on map
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -429,7 +661,11 @@ export function ApartmentDetail({
                           move_in_date: apartment.move_in_date || '',
                           listing_url: apartment.listing_url || '',
                           notes: apartment.notes || '',
+                          latitude: apartment.latitude?.toString() || '',
+                          longitude: apartment.longitude?.toString() || '',
                         })
+                        setAddressSelected(true)
+                        setAddressSuggestions([])
                       }}
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                     >

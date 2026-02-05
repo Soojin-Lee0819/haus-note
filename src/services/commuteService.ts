@@ -33,24 +33,31 @@ export const commuteService = {
     name: string
     address: string
     icon?: string
+    latitude?: number
+    longitude?: number
   }): Promise<CommuteLocation> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    // Geocode the address
-    let latitude: number | undefined
-    let longitude: number | undefined
+    // Use provided coordinates or geocode the address
+    let latitude = location.latitude
+    let longitude = location.longitude
 
-    const geocoded = await geocodeService.geocodeAddress(location.address)
-    if (geocoded) {
-      latitude = geocoded.latitude
-      longitude = geocoded.longitude
+    if (!latitude || !longitude) {
+      const geocoded = await geocodeService.geocodeAddress(location.address)
+      if (geocoded) {
+        latitude = geocoded.latitude
+        longitude = geocoded.longitude
+      }
     }
 
     const { data, error } = await supabase
       .from('commute_locations')
       .insert({
-        ...location,
+        project_id: location.project_id,
+        name: location.name,
+        address: location.address,
+        icon: location.icon,
         latitude,
         longitude,
         created_by: user.id
@@ -64,8 +71,8 @@ export const commuteService = {
 
   // Update a commute location
   async updateLocation(locationId: string, updates: Partial<CommuteLocation>): Promise<CommuteLocation> {
-    // If address changed, re-geocode
-    if (updates.address) {
+    // Only re-geocode if address changed AND no coordinates were provided
+    if (updates.address && updates.latitude == null && updates.longitude == null) {
       const geocoded = await geocodeService.geocodeAddress(updates.address)
       if (geocoded) {
         updates.latitude = geocoded.latitude

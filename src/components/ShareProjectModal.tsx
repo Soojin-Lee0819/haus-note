@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { X, Copy, Check, Trash2 } from 'lucide-react'
+import { X, Copy, Check, Trash2, Share2, Mail } from 'lucide-react'
 import { projectService } from '../services/projectService'
 import { ProjectMember, ProjectInvitation } from '../types/database'
 
 interface ShareProjectModalProps {
   projectId: string
+  projectName: string
   currentUserId: string
   userRole: string
   onClose: () => void
 }
 
-export function ShareProjectModal({ projectId, currentUserId, userRole, onClose }: ShareProjectModalProps) {
+export function ShareProjectModal({ projectId, projectName, currentUserId, userRole, onClose }: ShareProjectModalProps) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'editor' | 'viewer'>('editor')
   const [inviting, setInviting] = useState(false)
@@ -23,6 +24,8 @@ export function ShareProjectModal({ projectId, currentUserId, userRole, onClose 
   const [loadingMembers, setLoadingMembers] = useState(true)
 
   const isOwner = userRole === 'owner'
+
+  const shareText = `Join me on haus note to find our next apartment! I invited you to "${projectName}".`
 
   const loadData = useCallback(async () => {
     setLoadingMembers(true)
@@ -58,7 +61,7 @@ export function ShareProjectModal({ projectId, currentUserId, userRole, onClose 
       const updated = await projectService.getInvitations(projectId)
       setInvitations(updated)
     } catch (err: any) {
-      setInviteError(err.message || 'Failed to send invitation')
+      setInviteError(err.message || 'Failed to create invitation')
     } finally {
       setInviting(false)
     }
@@ -68,6 +71,29 @@ export function ShareProjectModal({ projectId, currentUserId, userRole, onClose 
     await navigator.clipboard.writeText(inviteLink)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join "${projectName}" on haus note`,
+          text: shareText,
+          url: inviteLink,
+        })
+      } catch (err: any) {
+        // User cancelled share - ignore
+        if (err.name !== 'AbortError') {
+          console.error('Share failed:', err)
+        }
+      }
+    }
+  }
+
+  const handleEmailShare = () => {
+    const subject = encodeURIComponent(`Join "${projectName}" on haus note`)
+    const body = encodeURIComponent(`${shareText}\n\n${inviteLink}`)
+    window.open(`mailto:?subject=${subject}&body=${body}`)
   }
 
   const handleRoleChange = async (userId: string, newRole: 'owner' | 'editor' | 'viewer') => {
@@ -104,11 +130,16 @@ export function ShareProjectModal({ projectId, currentUserId, userRole, onClose 
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Share Project</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900">Share Project</h2>
+            <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            Invite your partner, roommates, or friends to hunt together. No more scattered links and screenshots—everyone stays in sync.
+          </p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -136,7 +167,7 @@ export function ShareProjectModal({ projectId, currentUserId, userRole, onClose 
                 disabled={inviting}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium whitespace-nowrap"
               >
-                {inviting ? 'Sending...' : 'Send Invite'}
+                {inviting ? 'Creating...' : 'Create Invite'}
               </button>
             </form>
 
@@ -145,20 +176,57 @@ export function ShareProjectModal({ projectId, currentUserId, userRole, onClose 
             )}
 
             {inviteLink && (
-              <div className="mt-3 flex items-center gap-2 bg-gray-50 p-3 rounded-lg">
-                <input
-                  type="text"
-                  readOnly
-                  value={inviteLink}
-                  className="flex-1 bg-transparent text-sm text-gray-700 outline-none"
-                />
-                <button
-                  onClick={handleCopyLink}
-                  className="p-1.5 hover:bg-gray-200 rounded text-gray-600"
-                  title="Copy link"
-                >
-                  {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                </button>
+              <div className="mt-3 space-y-3">
+                <p className="text-sm text-green-600">
+                  Invite link created — share it with your friend!
+                </p>
+
+                {/* Share buttons */}
+                <div className="flex gap-2">
+                  {typeof navigator.share === 'function' && (
+                    <button
+                      onClick={handleNativeShare}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Share
+                    </button>
+                  )}
+                  <button
+                    onClick={handleEmailShare}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </button>
+                </div>
+
+                {/* Copy link fallback */}
+                <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg">
+                  <input
+                    type="text"
+                    readOnly
+                    value={inviteLink}
+                    className="flex-1 bg-transparent text-sm text-gray-700 outline-none"
+                  />
+                  <button
+                    onClick={handleCopyLink}
+                    className="flex items-center gap-1 px-2.5 py-1.5 hover:bg-gray-200 rounded text-gray-600 text-sm"
+                    title="Copy link"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-600" />
+                        <span className="text-green-600">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </div>

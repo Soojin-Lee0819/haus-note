@@ -9,7 +9,8 @@ export const projectService = {
       .from('projects')
       .select(`
         *,
-        members:project_members(*)
+        members:project_members(*),
+        apartments(id, status)
       `)
       .order('updated_at', { ascending: false })
 
@@ -130,7 +131,7 @@ export const projectService = {
   async inviteUser(projectId: string, email: string, role: 'editor' | 'viewer' = 'editor') {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
-    
+
     // Generate invitation token
     const token = crypto.randomUUID()
     const expiresAt = new Date()
@@ -148,9 +149,9 @@ export const projectService = {
       })
       .select()
       .single()
-    
+
     if (error) throw error
-    
+
     // Return invitation link
     const inviteUrl = `${window.location.origin}/invite/${token}`
     return { ...data, inviteUrl }
