@@ -29,12 +29,16 @@ export const authService = {
     return data
   },
 
-  // Sign in with Google
+  // Sign in with Google (OAuth). Redirects the browser to Google and back to
+  // the app, where supabase-js exchanges the auth code for a session.
   async signInWithGoogle() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: window.location.origin,
+        queryParams: {
+          prompt: 'select_account'
+        }
       }
     })
 
